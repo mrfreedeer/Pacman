@@ -20,8 +20,10 @@ if __name__ == '__main__':
     DOCK = (x,y)
     pygame.display.set_caption('PAC-MAN')
     pantalla.fill(black)
-    m = Maze(TILESIZE, DOCK)
+    mazelocation = "/home/juan/Escritorio/Project/maze.txt"
+    m = Maze(mazelocation, 200, screensize.current_h, DOCK)
     m.draw(pantalla)
+    mazesprites = m.getSprites()
 
     while True:
         pygame.display.flip()
