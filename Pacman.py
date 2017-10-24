@@ -49,6 +49,21 @@ def changedir(key, playershadow, jp):
         playershadow.x = 0
         playershadow.rect.x = jp.rect.x
         playershadow.rect.y = jp.rect.y + 1
+def updatemain(jp, mantain):
+    if mantain == pygame.K_RIGHT:
+        jp.x = 5
+    elif mantain == pygame.K_LEFT:
+        jp.x = -5
+    elif mantain == pygame.K_UP:
+        jp.y = -5
+    elif mantain == pygame.K_DOWN:
+        jp.y = 5
+
+    if mantain == pygame.K_DOWN or mantain == pygame.K_UP:
+        jp.x = 0
+    elif mantain == pygame.K_LEFT or mantain == pygame.K_RIGHT:
+        jp.y = 0
+
 if __name__ == '__main__':
     pygame.init()
     screensize = pygame.display.Info()
@@ -63,7 +78,7 @@ if __name__ == '__main__':
     m.draw(pantalla)
     mazesprites = m.getSprites()
     playersize = TILESIZE - 1
-    startx = DOCK[0] + 3 * TILESIZE
+    startx = DOCK[0] + (8 * TILESIZE)
     starty = DOCK[1] + 15 * TILESIZE - 15
 
     jp = Jugador(playersize,playersize, DOCK, TILESIZE, startx, starty)
@@ -72,20 +87,17 @@ if __name__ == '__main__':
     g.add(jp)
     ancholab = m.getWidth() + DOCK[0]
     limitancho = ancholab * m.getTile()
-    s = 0
-    quit = False
-    eating = False
+    quit = eating = collision = pendingturn = False
     speed  = 2
     magic = pygame.Surface((TILESIZE,TILESIZE))
     magic.fill(black)
-    move = False
     key = None
     turn = 0
     turnspeed = 3
-    collision = False
-    pendingturn = False
 
+    start = move = True
     mantain = pygame.K_LEFT
+    updatemain(jp, mantain)
     while True:
         pygame.draw.rect(pantalla, black, (jp.posx, jp.posy, playersize, playersize) )
 
@@ -103,33 +115,15 @@ if __name__ == '__main__':
                 collision = True
                 if mantain != key:
                     pendingturn = True
-            else:
-                if pendingturn:
-                    mantain = key
-                    pendingturn = False
-                    print("turnnow")
+
             if not collision:
                 mantain = key
                 pendingturn = False
-                if mantain == pygame.K_RIGHT:
-                    move = True
-                    jp.x = 5
-                elif mantain == pygame.K_LEFT:
-                    move = True
-                    jp.x = -5
-                elif mantain == pygame.K_UP:
-                    move = True
-                    jp.y = -5
-                elif mantain == pygame.K_DOWN:
-                    move = True
-                    jp.y = 5
-                if mantain == pygame.K_DOWN or mantain == pygame.K_UP:
-                    jp.x = 0
+                updatemain(jp,mantain)
+                move = True
 
-                elif mantain == pygame.K_LEFT or mantain == pygame.K_RIGHT:
-                    jp.y = 0
-
-        if move and turn >= turnspeed:
+        if move and turn >= turnspeed or start:
+            start = False
             if eating:
                 realspeed = speed * .5
             elif (jp.posx < DOCK[0] + 4 * TILESIZE or jp.posx > DOCK[0] + (m.getWidth() - 4) * TILESIZE) and (jp.posy >= TILESIZE * 10 and jp.posy <= TILESIZE * 11):
@@ -139,18 +133,13 @@ if __name__ == '__main__':
             movement(mantain, realspeed)
             turn = 0
 
-
-        #m.draw(pantalla)
         if not quit:
             g.update(mazesprites, m.getWidth())
             jp.update(mazesprites, m.getWidth())
             changedir(key, playershadow, jp)
-
-
             g.draw(pantalla)
             pantalla.blit(magic, (DOCK[0] - 18 + TILESIZE * m.getWidth() , DOCK[1] + 9 * TILESIZE - 10))
             pantalla.blit(magic, (DOCK[0] - TILESIZE , DOCK[1] + 9 * TILESIZE - 10))
-            pygame.display.flip()
             if key == pygame.K_UP:
                 print("up")
             elif key == pygame.K_DOWN:
@@ -160,6 +149,12 @@ if __name__ == '__main__':
             if key == pygame.K_RIGHT:
                 print("right")
             print(collision)
+            ls = pygame.sprite.spritecollideany(playershadow, mazesprites, False)
+            if ls == None and pendingturn:
+                mantain = key
+                pendingturn = False
+                updatemain(jp, mantain)
+            pygame.display.flip()
 
 
 
