@@ -14,11 +14,11 @@ black = (0,0,0)
 pink = (255,200,200)
 
 class Jugador(pygame.sprite.Sprite):
-    def __init__(self,ancho, alto, dock, tile, startx, starty):
+    def __init__(self,ancho, alto, dock, tile, startx, starty, path):
         pygame.sprite.Sprite.__init__(self)
         self._d = dock
         self._t = tile
-        self.image = pygame.Surface([ancho,alto])
+        self.image = path
         self.rect = self.image.get_rect()
         self.rect.x = startx
         self.rect.y = starty
@@ -26,7 +26,13 @@ class Jugador(pygame.sprite.Sprite):
         self.y = 0
         self.posx = startx
         self.posy = starty
-        self.image.fill(pink)
+        #self.image.fill(pink)
+    def changeimage(self, ancho, alto, path):
+        image = pygame.image.load(path).convert_alpha()
+        self.image = pygame.transform.scale(image, (ancho,alto))
+        self.rect = self.image.get_rect()
+        self.rect.x = self.posx
+        self.rect.y = self.posy
     def update(self, mazesprites, width):
         ls_col = pygame.sprite.spritecollide(self, mazesprites, False)
         cols = False

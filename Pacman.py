@@ -52,6 +52,7 @@ def changedir(key, playershadow, jp):
 def updatemain(jp, mantain):
     if mantain == pygame.K_RIGHT:
         jp.x = 5
+
     elif mantain == pygame.K_LEFT:
         jp.x = -5
     elif mantain == pygame.K_UP:
@@ -68,6 +69,7 @@ if __name__ == '__main__':
     pygame.init()
     screensize = pygame.display.Info()
     pantalla = pygame.display.set_mode([screensize.current_w,screensize.current_h])
+    clock = pygame.time.Clock()
     x = (screensize.current_w / 2 ) - (8.5 * TILESIZE)
     y = (screensize.current_h / 2) - (11 * TILESIZE)
     DOCK = (x,y)
@@ -81,23 +83,44 @@ if __name__ == '__main__':
     startx = DOCK[0] + (8 * TILESIZE)
     starty = DOCK[1] + 15 * TILESIZE - 15
 
-    jp = Jugador(playersize,playersize, DOCK, TILESIZE, startx, starty)
-    playershadow = Jugador(playersize,playersize, DOCK, TILESIZE, startx, starty)
+    image = pygame.image.load('Pacmanc.png').convert_alpha()
+    closedpac = pygame.transform.scale(image, (playersize,playersize))
+    image = pygame.image.load('Pacmanright.png').convert_alpha()
+    rightpac = pygame.transform.scale(image, (playersize,playersize))
+    image = pygame.transform.rotate(image, 90)
+    uppac = pygame.transform.scale(image, (playersize,playersize))
+    image = pygame.transform.rotate(image, 90)
+    leftpac = pygame.transform.scale(image, (playersize,playersize))
+    image = pygame.transform.rotate(image, 90)
+    downpac = pygame.transform.scale(image, (playersize,playersize))
+    currentpac = leftpac
+
+    jp = Jugador(playersize,playersize, DOCK, TILESIZE, startx, starty, currentpac)
+    playershadow = Jugador(playersize,playersize, DOCK, TILESIZE, startx, starty, currentpac)
     g = pygame.sprite.Group()
     g.add(jp)
     ancholab = m.getWidth() + DOCK[0]
     limitancho = ancholab * m.getTile()
     quit = eating = collision = pendingturn = False
-    speed  = 2
+    speed  = 1
     magic = pygame.Surface((TILESIZE,TILESIZE))
     magic.fill(black)
     key = None
     turn = 0
-    turnspeed = 3
+    turnspeed = speed * 2
+    mouthchange = False
+    closed = False
 
     start = move = True
     mantain = pygame.K_LEFT
     updatemain(jp, mantain)
+
+
+    counter = 0
+    pantalla.blit(magic, (DOCK[0] - 18 + TILESIZE * m.getWidth() , DOCK[1] + 9 * TILESIZE - 10))
+    pantalla.blit(magic, (DOCK[0] - TILESIZE , DOCK[1] + 9 * TILESIZE - 10))
+
+    move = True
     while True:
         pygame.draw.rect(pantalla, black, (jp.posx, jp.posy, playersize, playersize) )
 
@@ -120,26 +143,48 @@ if __name__ == '__main__':
                 mantain = key
                 pendingturn = False
                 updatemain(jp,mantain)
-                move = True
+                if key == pygame.K_RIGHT:
+                    currentpac = rightpac
+                elif key == pygame.K_LEFT:
+                    currentpac = leftpac
+                elif key == pygame.K_UP:
+                    currentpac = uppac
+                elif key == pygame.K_DOWN:
+                    currentpac = downpac
+
+
 
         if move and turn >= turnspeed or start:
             start = False
             if eating:
                 realspeed = speed * .5
-            elif (jp.posx < DOCK[0] + 4 * TILESIZE or jp.posx > DOCK[0] + (m.getWidth() - 4) * TILESIZE) and (jp.posy >= TILESIZE * 10 and jp.posy <= TILESIZE * 11):
-                realspeed = speed * 2
+            elif (jp.posx < DOCK[0] + 2 * TILESIZE or jp.posx > DOCK[0] + (m.getWidth() - 4) * TILESIZE) and (jp.posy >= TILESIZE * 10 and jp.posy <= TILESIZE * 11):
+                realspeed = speed * 1.5
             else:
                 realspeed = speed
             movement(mantain, realspeed)
+            if counter == 15:
+                mouthchange = True
+                closed = not closed
+                counter = 0
+            else:
+                counter += 1
             turn = 0
 
         if not quit:
+            if mouthchange:
+                if closed:
+                    jp.image = closedpac
+                else:
+                    jp.image = currentpac
+
+
             g.update(mazesprites, m.getWidth())
             jp.update(mazesprites, m.getWidth())
             changedir(key, playershadow, jp)
             g.draw(pantalla)
-            pantalla.blit(magic, (DOCK[0] - 18 + TILESIZE * m.getWidth() , DOCK[1] + 9 * TILESIZE - 10))
-            pantalla.blit(magic, (DOCK[0] - TILESIZE , DOCK[1] + 9 * TILESIZE - 10))
+
+            """
             if key == pygame.K_UP:
                 print("up")
             elif key == pygame.K_DOWN:
@@ -149,15 +194,25 @@ if __name__ == '__main__':
             if key == pygame.K_RIGHT:
                 print("right")
             print(collision)
+            """
             ls = pygame.sprite.spritecollideany(playershadow, mazesprites, False)
             if ls == None and pendingturn:
                 mantain = key
                 pendingturn = False
                 updatemain(jp, mantain)
+                if key == pygame.K_RIGHT:
+                    currentpac = rightpac
+                elif key == pygame.K_LEFT:
+                    currentpac = leftpac
+                elif key == pygame.K_UP:
+                    currentpac = uppac
+                elif key == pygame.K_DOWN:
+                    currentpac = downpac
             pygame.display.flip()
 
 
-
+        clock.tick(450)
+        #print(clock.get_fps())
         turn += 1
 
         #pos = pygame.mouse.get_pos()
