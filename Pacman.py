@@ -79,9 +79,9 @@ if __name__ == '__main__':
     m = Maze(mazelocation, 200, screensize.current_h, DOCK)
     m.draw(pantalla)
     mazesprites = m.getSprites()
-    playersize = TILESIZE - 1
-    startx = DOCK[0] + (8 * TILESIZE)
-    starty = DOCK[1] + 15 * TILESIZE - 15
+    playersize = TILESIZE - 2
+    startx = DOCK[0] + (7 * TILESIZE)
+    starty = DOCK[1] + 14 * TILESIZE + 1
 
     image = pygame.image.load('Pacmanc.png').convert_alpha()
     closedpac = pygame.transform.scale(image, (playersize,playersize))
@@ -97,13 +97,13 @@ if __name__ == '__main__':
 
     jp = Jugador(playersize,playersize, DOCK, TILESIZE, startx, starty, currentpac)
     playershadow = Jugador(playersize,playersize, DOCK, TILESIZE, startx, starty, currentpac)
-    g = pygame.sprite.Group()
+    g = pygame.sprite.GroupSingle()
     g.add(jp)
     ancholab = m.getWidth() + DOCK[0]
     limitancho = ancholab * m.getTile()
     quit = eating = collision = pendingturn = False
     speed  = 1
-    magic = pygame.Surface((TILESIZE,TILESIZE))
+    magic = pygame.Surface((TILESIZE,3 * TILESIZE))
     magic.fill(black)
     key = None
     turn = 0
@@ -117,8 +117,7 @@ if __name__ == '__main__':
 
 
     counter = 0
-    pantalla.blit(magic, (DOCK[0] - 18 + TILESIZE * m.getWidth() , DOCK[1] + 9 * TILESIZE - 10))
-    pantalla.blit(magic, (DOCK[0] - TILESIZE , DOCK[1] + 9 * TILESIZE - 10))
+
 
     move = True
     while True:
@@ -210,7 +209,8 @@ if __name__ == '__main__':
                     currentpac = downpac
             pygame.display.flip()
 
-
+        pantalla.blit(magic, (DOCK[0] + TILESIZE * (m.getWidth() - 1) , DOCK[1] + 8 * TILESIZE))
+        pantalla.blit(magic, (DOCK[0] - TILESIZE , DOCK[1] + 8 * TILESIZE))
         clock.tick(450)
         #print(clock.get_fps())
         turn += 1

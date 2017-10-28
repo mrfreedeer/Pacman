@@ -100,7 +100,7 @@ class Maze(pygame.sprite.Sprite):
     def getWidth(self):
         return self._width
     def outline(self, pantalla):
-        self._lines.append(Xline(self._d[0] - 1, self._d[1] - 1, self._width * self._t))
+        """self._lines.append(Xline(self._d[0] - 1, self._d[1] - 1, self._width * self._t))
         self._lines.append(Xline(self._d[0] - 1, self._height*self._t + self._d[1] +self._t,self._width * self._t ))
 
         self._lines.append(Yline(self._d[0] -1 , self._d[1],self._t * 6))
@@ -130,25 +130,70 @@ class Maze(pygame.sprite.Sprite):
         self._lines.append(Xline(self._d[0]+ self._t * (self._width - 3), self._d[1] + 10 * self._t, self._t * 3 ))
         self._lines.append(Xline(self._d[0] + 1 + 6 * self._t, + self._d[1] + 8 * self._t, 2 * self._t))
         self._lines.append(Xline(self._d[0] + 9 * self._t, + self._d[1] + 8 * self._t, 2 * self._t))
+        """
     def draw(self, pantalla):
         self.outline(pantalla)
         for row in range(self._height):
             for col in range(self._width):
-                if self._mazemap[row][col] == '1' :
-                    self._walls.append(Wall(col*self._t + self._d[0], row*self._t + self._d[1], self._t))
                 if self._mazemap[row][col] == '0' :
                     pass
-                if self._mazemap[row][col] == '3':
-                    self._lines.append(Xline(col*self._t + self._d[0], row*self._t + self._d[1] - 1, self._t))
+                elif self._mazemap[row][col] == '1':
+                    self._lines.append(Xline(col * self._t + self._d[0], row * self._t + self._d[1] - 1, self._t))
+                    self._lines.append(Yline(col * self._t + self._d[0] - 1, row * self._t + self._d[1], self._t))
+                elif self._mazemap[row][col] == '2':
+                    self._lines.append(Xline(col * self._t + self._d[0], row * self._t + self._d[1] - 1, self._t))
+                    self._lines.append(Yline((1 + col) * self._t + self._d[0], row * self._t + self._d[1], self._t))
+                elif self._mazemap[row][col] == '3':
+                    self._lines.append(Xline(col * self._t + self._d[0], (row + 1) * self._t + self._d[1], self._t))
+                    self._lines.append(Yline(col * self._t + self._d[0] - 1, row * self._t + self._d[1], self._t))
+                elif self._mazemap[row][col] == '4':
+                    self._lines.append(Xline(col * self._t + self._d[0], (row + 1) * self._t + self._d[1], self._t))
+                    self._lines.append(Yline((col + 1) * self._t + self._d[0], row * self._t + self._d[1], self._t))
+                elif self._mazemap[row][col] == '5':
+                    self._lines.append(Xline(col * self._t + self._d[0], row * self._t + self._d[1] - 1, self._t))
+                elif self._mazemap[row][col] == '6':
+                    self._lines.append(Xline(col * self._t + self._d[0], (row + 1) * self._t + self._d[1] + 1, self._t))
+                elif self._mazemap[row][col] == '7':
+                    self._lines.append(Yline(col * self._t + self._d[0] - 1, row * self._t + self._d[1], self._t))
+                elif self._mazemap[row][col] == '8':
+                    self._lines.append(Yline((col + 1) * self._t + self._d[0] + 1, row * self._t + self._d[1], self._t))
+                elif self._mazemap[row][col] == '9':
+                    self._walls.append(Wall(col * self._t + self._d[0],  row * self._t + self._d[1], self._t))
+                elif self._mazemap[row][col] == '-':
+                    self._lines.append(Xline(col * self._t + self._d[0], (row + 1) * self._t + self._d[1], self._t))
+                elif self._mazemap[row][col] == '+':
+                    self._lines.append(Xline(col * self._t + self._d[0], row * self._t + self._d[1], self._t))
+                elif self._mazemap[row][col] == ',':
+                    self._lines.append(Yline((col + 1)  * self._t + self._d[0], row * self._t + self._d[1], self._t))
+                """if self._mazemap[row][col] == '1' :
+                    self._walls.append(Wall(col*self._t + self._d[0], row*self._t + self._d[1], self._t))
+                if self._mazemap[row][col] == '2' :
+                    if col < self._width:
+                        self._lines.append(Xline(col * self._t + self._d[0] - 1, row * self._t + self._d[1] - 2, self._t))
+                    else:
+                        self._lines.append(Xline(col * self._t + self._d[0] + 1, row * self._t + self._d[1] - 2, self._t))
+                """
         for x in self._walls:
             self._sprites.add(x)
         for y in self._lines:
             self._sprites.add(y)
-        self._sprites.draw(pantalla)
         z = Yline(self._d[0] - self._t - 5, self._d[1], self._t * self._height)
         z1 = Yline(self._d[0] + self._t * (self._width + 1) + 5, self._d[1], self._t * self._height)
-        z2 = Xline(self._d[0] + 8 * self._t, self._d[1] + 8 * self._t, self._t)
+        z2 = Xline(self._d[0] - self._t , self._d[1] + self._t * 9 - 1, self._t)
+        z3 = Xline(self._d[0] - self._t , self._d[1] + self._t * 10, self._t)
+        z4 = Xline(self._d[0] + self._t * (self._width ) , self._d[1] + self._t * 9 - 1, self._t)
+        z5 = Xline(self._d[0] + self._t * (self._width ) , self._d[1] + self._t * 10, self._t)
+
+        z6 = Xline(self._d[0] + 8 * self._t, self._d[1] + 8 * self._t, self._t)
+        self._sprites.draw(pantalla)
         self._sprites.add(z)
         self._sprites.add(z1)
+        self._sprites.add(z2)
+        self._sprites.add(z3)
+        self._sprites.add(z4)
+        self._sprites.add(z5)
+        self._sprites.add(z6)
+
+
     def getSprites(self):
         return self._sprites
