@@ -1,4 +1,5 @@
 import pygame
+import math
 from maze import *
 from pygame.locals import *
 
@@ -9,7 +10,7 @@ darkBlue = (0,0,128)
 white = (255,255,255)
 black = (0,0,0)
 pink = (255,200,200)
-TILESIZE = 31
+
 
 def movement(key, speed):
     if key == pygame.K_RIGHT:
@@ -67,21 +68,24 @@ def updatemain(jp, mantain):
 
 if __name__ == '__main__':
     pygame.init()
+    FREE = 200
     screensize = pygame.display.Info()
     pantalla = pygame.display.set_mode([screensize.current_w,screensize.current_h])
+    mazelocation = "/home/juan/Escritorio/Project/maze.txt"
+    maze = readmaze(mazelocation)
+    TILESIZE = math.ceil(abs((screensize.current_h - FREE)) /(len(maze) - 1) )
     clock = pygame.time.Clock()
     x = (screensize.current_w / 2 ) - (8.5 * TILESIZE)
     y = (screensize.current_h / 2) - (11 * TILESIZE)
     DOCK = (x,y)
     pygame.display.set_caption('PAC-MAN')
     pantalla.fill(black)
-    mazelocation = "/home/juan/Escritorio/Project/maze.txt"
-    m = Maze(mazelocation, 200, screensize.current_h, DOCK)
+    m = Maze(mazelocation, FREE, screensize.current_h, DOCK)
     m.draw(pantalla)
     mazesprites = m.getSprites()
-    playersize = TILESIZE - 2
-    startx = DOCK[0] + (7 * TILESIZE)
-    starty = DOCK[1] + 14 * TILESIZE + 1
+    playersize = int(TILESIZE)
+    startx = DOCK[0] + (8 * TILESIZE)
+    starty = DOCK[1] + 15 * TILESIZE
 
     image = pygame.image.load('Pacmanc.png').convert_alpha()
     closedpac = pygame.transform.scale(image, (playersize,playersize))
@@ -99,6 +103,7 @@ if __name__ == '__main__':
     playershadow = Jugador(playersize,playersize, DOCK, TILESIZE, startx, starty, currentpac)
     g = pygame.sprite.GroupSingle()
     g.add(jp)
+
     ancholab = m.getWidth() + DOCK[0]
     limitancho = ancholab * m.getTile()
     quit = eating = collision = pendingturn = False
@@ -112,6 +117,7 @@ if __name__ == '__main__':
     closed = False
 
     start = move = True
+
     mantain = pygame.K_LEFT
     updatemain(jp, mantain)
 
@@ -119,7 +125,6 @@ if __name__ == '__main__':
     counter = 0
 
 
-    move = True
     while True:
         pygame.draw.rect(pantalla, black, (jp.posx, jp.posy, playersize, playersize) )
 
