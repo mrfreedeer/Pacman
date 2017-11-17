@@ -54,7 +54,7 @@ class Jugador(pygame.sprite.Sprite):
         if self.posx < (self._d[0] - self._t + 5):
             self.posx =  self._d[0] + self._t * (width -1)
             self.rect.x = self._d[0] + self._t * (width -1)
-        if self.posx > self._d[0] + self._t * (width - 1)  :
+        if self.posx > self._d[0] + self._t * (width)  :
             self.posx = self.rect.x = self._d[0]
 
 class Wall (pygame.sprite.Sprite):

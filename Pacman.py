@@ -71,7 +71,7 @@ if __name__ == '__main__':
     FREE = 200
     screensize = pygame.display.Info()
     pantalla = pygame.display.set_mode([screensize.current_w,screensize.current_h])
-    mazelocation = "/home/juan/Escritorio/Project/maze.txt"
+    mazelocation = "C:\\Users\\Usuario1\\Desktop\\Pacman(Python)\\maze.txt"
     maze = readmaze(mazelocation)
     TILESIZE = math.ceil(abs((screensize.current_h - FREE)) /(len(maze) - 1) )
     clock = pygame.time.Clock()
@@ -163,6 +163,7 @@ if __name__ == '__main__':
             if eating:
                 realspeed = speed * .5
             elif (jp.posx < DOCK[0] + 2 * TILESIZE or jp.posx > DOCK[0] + (m.getWidth() - 4) * TILESIZE) and (jp.posy >= TILESIZE * 10 and jp.posy <= TILESIZE * 11):
+                print("REAL DEAL")
                 realspeed = speed * 1.5
             else:
                 realspeed = speed
@@ -212,10 +213,11 @@ if __name__ == '__main__':
                     currentpac = uppac
                 elif key == pygame.K_DOWN:
                     currentpac = downpac
-            pygame.display.flip()
+            
 
-        pantalla.blit(magic, (DOCK[0] + TILESIZE * (m.getWidth() - 1) , DOCK[1] + 8 * TILESIZE))
+        pantalla.blit(magic, (DOCK[0] + TILESIZE * (m.getWidth()) , DOCK[1] + 8 * TILESIZE))
         pantalla.blit(magic, (DOCK[0] - TILESIZE , DOCK[1] + 8 * TILESIZE))
+        pygame.display.flip()
         clock.tick(450)
         #print(clock.get_fps())
         turn += 1
