@@ -69,9 +69,10 @@ def updatemain(jp, mantain):
 if __name__ == '__main__':
     pygame.init()
     FREE = 200
+    slowturn = 0
     screensize = pygame.display.Info()
     pantalla = pygame.display.set_mode([screensize.current_w,screensize.current_h])
-    mazelocation = "C:\\Users\\Usuario1\\Desktop\\Pacman(Python)\\maze.txt"
+    mazelocation = "/home/juan/Escritorio/Project/maze.txt"
     maze = readmaze(mazelocation)
     TILESIZE = math.ceil(abs((screensize.current_h - FREE)) /(len(maze) - 1) )
     clock = pygame.time.Clock()
@@ -80,8 +81,8 @@ if __name__ == '__main__':
     DOCK = (x,y)
     pygame.display.set_caption('PAC-MAN')
     pantalla.fill(black)
-    m = Maze(mazelocation, FREE, screensize.current_h, DOCK)
-    m.draw(pantalla)
+    m = Maze(mazelocation, FREE, screensize.current_h, DOCK, pantalla)
+    m.draw()
     mazesprites = m.getSprites()
     playersize = int(TILESIZE)
     startx = DOCK[0] + (8 * TILESIZE)
@@ -109,6 +110,8 @@ if __name__ == '__main__':
     quit = eating = collision = pendingturn = False
     speed  = 1
     magic = pygame.Surface((TILESIZE,3 * TILESIZE))
+    pacdotmagic = pygame.Surface((6,6))
+    pacdotmagic.fill(black)
     magic.fill(black)
     key = None
     turn = 0
@@ -120,9 +123,14 @@ if __name__ == '__main__':
 
     mantain = pygame.K_LEFT
     updatemain(jp, mantain)
-
-
     counter = 0
+    pacdots = pygame.sprite.Group()
+    for x in m:
+        if x!= None:
+            pacdots.add(x)
+
+    pacdots.draw(pantalla)
+    habil = False
 
 
     while True:
@@ -160,11 +168,10 @@ if __name__ == '__main__':
 
         if move and turn >= turnspeed or start:
             start = False
-            if eating:
-                realspeed = speed * .5
-            elif (jp.posx < DOCK[0] + 2 * TILESIZE or jp.posx > DOCK[0] + (m.getWidth() - 4) * TILESIZE) and (jp.posy >= TILESIZE * 10 and jp.posy <= TILESIZE * 11):
-                print("REAL DEAL")
+            if (jp.posx < DOCK[0] + 2 * TILESIZE or jp.posx > DOCK[0] + (m.getWidth() - 4) * TILESIZE) and (jp.posy >= TILESIZE * 10 and jp.posy <= TILESIZE * 11):
                 realspeed = speed * 1.5
+            elif slowturn != 0:
+                pass
             else:
                 realspeed = speed
             movement(mantain, realspeed)
@@ -213,14 +220,31 @@ if __name__ == '__main__':
                     currentpac = uppac
                 elif key == pygame.K_DOWN:
                     currentpac = downpac
-            
+        paccolide = pygame.sprite.spritecollide(playershadow, pacdots, False)
+        if len(paccolide) != 0:
+            for o in paccolide:
+                pantalla.blit(pacdotmagic, (o.rect.x, o.rect.y))
+                o.kill()
+            habil = True
+        else:
+            if slowturn > turnspeed * 4:
+                slowturn = 0
+                habil = False
+        if slowturn != 0:
+            realspeed = speed * .3
+        else:
+            realspeed = speed
+
 
         pantalla.blit(magic, (DOCK[0] + TILESIZE * (m.getWidth()) , DOCK[1] + 8 * TILESIZE))
         pantalla.blit(magic, (DOCK[0] - TILESIZE , DOCK[1] + 8 * TILESIZE))
         pygame.display.flip()
         clock.tick(450)
-        #print(clock.get_fps())
+
         turn += 1
+        if habil:
+            slowturn += 1
+
 
         #pos = pygame.mouse.get_pos()
         #print(pos)

@@ -1,6 +1,7 @@
 import pygame
 import json
 import math
+import collections.abc
 from pygame.locals import *
 from sys import exit
 
@@ -26,7 +27,7 @@ class Jugador(pygame.sprite.Sprite):
         self.y = 0
         self.posx = startx
         self.posy = starty
-        #self.image.fill(pink)
+
     def changeimage(self, ancho, alto, path):
         image = pygame.image.load(path).convert_alpha()
         self.image = pygame.transform.scale(image, (ancho,alto))
@@ -77,106 +78,132 @@ class Yline (pygame.sprite.Sprite):
         self.rect = self.image.get_rect(x = x, y = y)
 
 
+class Invidot(pygame.sprite.Sprite):
+    def __init__(self,x, y):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = pygame.Surface((5,5))
+        self.image.fill(white)
+        self.rect = self.image.get_rect(x = x, y = y)
+    def modpos(self,x,y):
+        self.rect.x = x
+        self.rect.y = y
+
+class MazeIterator(collections.abc.Iterator):
+
+
+    def __init__(self, maze, pantalla):
+        self._p = pantalla
+        self._m = maze
+        self._posx = 0
+        self._newposx = 0
+        self._newposy = 0
+        self._posy = 0
+        self._invi = Invidot(maze._d[0] + (maze.getTile()/2), maze._d[1] + (maze.getTile()/2))
+        self._addedsprites = []
+        self._addedsprites.append(Wall(self._m._d[0], self._m._d[1] + 6 * self._m.getTile(), 3*self._m.getTile()))
+        self._addedsprites.append(Wall(self._m._d[0], self._m._d[1] + 10 * self._m.getTile(), 3*self._m.getTile()))
+        self._addedsprites.append(Wall(self._m._d[0] + ((self._m.getWidth() - 3)  * self._m.getTile()), self._m._d[1] + 6 * self._m.getTile(), 3*self._m.getTile()))
+        self._addedsprites.append(Wall(self._m._d[0] + ((self._m.getWidth() - 3) * self._m.getTile()), self._m._d[1] + 10 * self._m.getTile(), 3*self._m.getTile()))
+        y = 0
+        while y < 3 :
+            z = 0
+            while z < 5:
+                self._addedsprites.append(Wall(self._m._d[0] + ((6 + z) * self._m.getTile()), self._m._d[1] + ((8 + y) * self._m.getTile()), self._m.getTile()))
+                z += 1
+            y += 1
+        for x in self._addedsprites:
+            self._m.addToSprites(x)
+
+    def __next__(self):
+        if self._newposx != 0 and self._newposy != 0:
+            self._invi.modpos(self._newposx, self._newposy)
+        if self._posy < self._m._height:
+            ls = pygame.sprite.spritecollideany(self._invi, self._m.getSprites())
+            self._posx += .744
+            if self._posx >= self._m.getWidth()-.744:
+                self._posx = 0
+                self._posy += 1
+            self._newposx = (self._posx * self._m.getTile() + (self._m.getTile()/2)) + self._m._d[0]
+            self._newposy = (self._posy * self._m.getTile() + (self._m.getTile()/2)) + self._m._d[1]
+
+            if ls == None:
+                return Invidot(self._invi.rect.x, self._invi.rect.y)
+        else:
+            for x in self._addedsprites:
+                x.kill()
+            raise StopIteration()
+
+
+
+
+class Mazefactory(object):
+    def getPart(self, kind, posx, posy, size, dock):
+        if kind == '5':
+            return(Xline(posy * size + dock[0], posx * size + dock[1] - 1, size))
+        elif kind == '6':
+            return(Xline(posy * size + dock[0], (posx + 1) * size + dock[1] + 1, size))
+        elif kind == '7':
+            return(Yline(posy * size + dock[0] - 1, posx * size + dock[1], size))
+        elif kind == '8':
+            return(Yline((posy + 1) * size + dock[0] + 1, posx * size + dock[1], size))
+        elif kind == '9':
+            return (Wall(posy * size + dock[0],  posx * size + dock[1], size))
+        elif kind == '-':
+            return(Xline(posy * size + dock[0], (posx + 1) * size + dock[1], size))
+        elif kind == '+':
+            return(Xline(posy * size + dock[0], posx * size + dock[1], size))
+        elif kind == ',':
+            return(Yline((posy + 1)  * size + dock[0], posx * size + dock[1], size))
+        else:
+            print("Not recognized", "KIND: ", kind)
+    def getCorner(self,kind,posx,posy,size,dock):
+        if kind == '1':
+            return ((Xline(posy * size + dock[0], posx * size + dock[1] - 1, size)), (Yline(posy * size + dock[0] - 1, posx * size + dock[1], size)))
+        elif kind == '2':
+            return((Xline(posy * size + dock[0], posx * size + dock[1] - 1, size)),(Yline((1 + posy) * size + dock[0], posx * size + dock[1], size)))
+        elif kind == '3':
+            return ((Xline(posy * size + dock[0], (posx + 1) * size + dock[1], size)),(Yline(posy * size + dock[0] - 1, posx * size + dock[1], size)))
+        elif kind == '4':
+            return((Xline(posy * size + dock[0], (posx + 1) * size + dock[1], size)),(Yline((posy + 1) * size + dock[0], posx * size + dock[1], size)))
 
 def readmaze(string):
     json_data = open(string).read().split("\n")
     return json_data
-class Maze(pygame.sprite.Sprite):
-    def __init__(self, string, free, height, DOCK):
-        pygame.sprite.Sprite.__init__(self)
 
+
+
+class Maze(object):
+    def __init__(self, string, free, height, DOCK, pantalla):
         self._d = DOCK
+        self._p = pantalla
         self._mazemap = readmaze(string)
         self._width = len(self._mazemap[0])
         self._height = len(self._mazemap) - 1
         self._t = math.ceil(abs((height - free)) / self._height)
-        #self._t = abs((height - free)) / self._height
-        self._walls = []
-        self._lines = []
         self._sprites = pygame.sprite.Group()
 
     def getTile(self):
         return self._t
     def getWidth(self):
         return self._width
-    def outline(self, pantalla):
-        """self._lines.append(Xline(self._d[0] - 1, self._d[1] - 1, self._width * self._t))
-        self._lines.append(Xline(self._d[0] - 1, self._height*self._t + self._d[1] +self._t,self._width * self._t ))
 
-        self._lines.append(Yline(self._d[0] -1 , self._d[1],self._t * 6))
-
-        self._lines.append(Yline(self._d[0] + self._width * self._t, self._d[1],self._t * 6))
-
-        self._lines.append(Yline(self._d[0] -1 , self._d[1] + 13 * self._t,self._t * 7))
-        self._lines.append(Yline(self._d[0] + self._width * self._t, self._d[1] + 13 * self._t, self._t * 7))
-
-
-        self._lines.append(Yline(self._d[0] - 1 +  3 * self._t, self._d[1]+ 6 * self._t ,3 * self._t - 1))
-        self._lines.append(Yline(self._d[0] + 14 * self._t, self._d[1]+ 6 * self._t,3 * self._t - 1))
-
-        self._lines.append(Yline(self._d[0] - 1 + 3 * self._t, self._d[1]+ 10 * self._t,3 * self._t - 1))
-        self._lines.append(Yline(self._d[0] + 14 * self._t, self._d[1]+ 10 * self._t,3 * self._t - 1))
-
-
-        self._lines.append(Yline(self._d[0] + 6 * self._t, self._d[1] + 8 * self._t, 3 * self._t - 1))
-        self._lines.append(Yline(self._d[0] - 1 + 11 * self._t, self._d[1] + 8 * self._t,  3 * self._t - 1))
-
-        self._lines.append(Xline(self._d[0] - 1, self._d[1] + 6 * self._t, 3 * self._t))
-        self._lines.append(Xline(self._d[0] + 1 + self._t * (self._width - 3) , self._d[1]  + 6 * self._t, 3 * self._t))
-        self._lines.append(Xline(self._d[0], self._d[1] + 9 * self._t - 1, self._t * 3 ))
-        self._lines.append(Xline(self._d[0], self._d[1] + 10 * self._t , self._t * 3 ))
-
-        self._lines.append(Xline(self._d[0] + self._t * (self._width - 3), self._d[1] + 9 * self._t - 1, self._t * 3 ))
-        self._lines.append(Xline(self._d[0]+ self._t * (self._width - 3), self._d[1] + 10 * self._t, self._t * 3 ))
-        self._lines.append(Xline(self._d[0] + 1 + 6 * self._t, + self._d[1] + 8 * self._t, 2 * self._t))
-        self._lines.append(Xline(self._d[0] + 9 * self._t, + self._d[1] + 8 * self._t, 2 * self._t))
-        """
-    def draw(self, pantalla):
-        self.outline(pantalla)
+    def draw(self):
+        corners = ['1','2','3','4']
+        Factory = Mazefactory()
         for row in range(self._height):
             for col in range(self._width):
-                if self._mazemap[row][col] == '0' :
+                if self._mazemap[row][col] in corners:
+                    tuple = Factory.getCorner(self._mazemap[row][col], row, col, self._t, self._d)
+                    for x in tuple:
+                        self._sprites.add(x)
+                elif self._mazemap[row][col] == '0':
                     pass
-                elif self._mazemap[row][col] == '1':
-                    self._lines.append(Xline(col * self._t + self._d[0], row * self._t + self._d[1] - 1, self._t))
-                    self._lines.append(Yline(col * self._t + self._d[0] - 1, row * self._t + self._d[1], self._t))
-                elif self._mazemap[row][col] == '2':
-                    self._lines.append(Xline(col * self._t + self._d[0], row * self._t + self._d[1] - 1, self._t))
-                    self._lines.append(Yline((1 + col) * self._t + self._d[0], row * self._t + self._d[1], self._t))
-                elif self._mazemap[row][col] == '3':
-                    self._lines.append(Xline(col * self._t + self._d[0], (row + 1) * self._t + self._d[1], self._t))
-                    self._lines.append(Yline(col * self._t + self._d[0] - 1, row * self._t + self._d[1], self._t))
-                elif self._mazemap[row][col] == '4':
-                    self._lines.append(Xline(col * self._t + self._d[0], (row + 1) * self._t + self._d[1], self._t))
-                    self._lines.append(Yline((col + 1) * self._t + self._d[0], row * self._t + self._d[1], self._t))
-                elif self._mazemap[row][col] == '5':
-                    self._lines.append(Xline(col * self._t + self._d[0], row * self._t + self._d[1] - 1, self._t))
-                elif self._mazemap[row][col] == '6':
-                    self._lines.append(Xline(col * self._t + self._d[0], (row + 1) * self._t + self._d[1] + 1, self._t))
-                elif self._mazemap[row][col] == '7':
-                    self._lines.append(Yline(col * self._t + self._d[0] - 1, row * self._t + self._d[1], self._t))
-                elif self._mazemap[row][col] == '8':
-                    self._lines.append(Yline((col + 1) * self._t + self._d[0] + 1, row * self._t + self._d[1], self._t))
-                elif self._mazemap[row][col] == '9':
-                    self._walls.append(Wall(col * self._t + self._d[0],  row * self._t + self._d[1], self._t))
-                elif self._mazemap[row][col] == '-':
-                    self._lines.append(Xline(col * self._t + self._d[0], (row + 1) * self._t + self._d[1], self._t))
-                elif self._mazemap[row][col] == '+':
-                    self._lines.append(Xline(col * self._t + self._d[0], row * self._t + self._d[1], self._t))
-                elif self._mazemap[row][col] == ',':
-                    self._lines.append(Yline((col + 1)  * self._t + self._d[0], row * self._t + self._d[1], self._t))
-                """if self._mazemap[row][col] == '1' :
-                    self._walls.append(Wall(col*self._t + self._d[0], row*self._t + self._d[1], self._t))
-                if self._mazemap[row][col] == '2' :
-                    if col < self._width:
-                        self._lines.append(Xline(col * self._t + self._d[0] - 1, row * self._t + self._d[1] - 2, self._t))
-                    else:
-                        self._lines.append(Xline(col * self._t + self._d[0] + 1, row * self._t + self._d[1] - 2, self._t))
-                """
-        for x in self._walls:
-            self._sprites.add(x)
-        for y in self._lines:
-            self._sprites.add(y)
+                elif self._mazemap[row][col]!='9':
+                    x = Factory.getPart(self._mazemap[row][col], row, col, self._t, self._d)
+                    self._sprites.add(x)
+                else:
+                    self._sprites.add(Factory.getPart(self._mazemap[row][col], row, col, self._t, self._d))
+
         z = Yline(self._d[0] - self._t - 5, self._d[1], self._t * self._height)
         z1 = Yline(self._d[0] + self._t * (self._width + 1) + 5, self._d[1], self._t * self._height)
         z2 = Xline(self._d[0] - self._t , self._d[1] + self._t * 9 - 1, self._t)
@@ -185,7 +212,7 @@ class Maze(pygame.sprite.Sprite):
         z5 = Xline(self._d[0] + self._t * (self._width ) , self._d[1] + self._t * 10, self._t)
 
         z6 = Xline(self._d[0] + 8 * self._t, self._d[1] + 8 * self._t, self._t)
-        self._sprites.draw(pantalla)
+        self._sprites.draw(self._p)
         self._sprites.add(z)
         self._sprites.add(z1)
         self._sprites.add(z2)
@@ -197,3 +224,7 @@ class Maze(pygame.sprite.Sprite):
 
     def getSprites(self):
         return self._sprites
+    def addToSprites(self, spr):
+        self._sprites.add(spr)
+    def __iter__(self):
+        return MazeIterator(self, self._p)
