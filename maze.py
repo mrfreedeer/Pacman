@@ -89,10 +89,7 @@ class Invidot(pygame.sprite.Sprite):
         self.rect.y = y
 
 class MazeIterator(collections.abc.Iterator):
-
-
-    def __init__(self, maze, pantalla):
-        self._p = pantalla
+    def __init__(self, maze):
         self._m = maze
         self._posx = 0
         self._newposx = 0
@@ -154,8 +151,7 @@ class Mazefactory(object):
             return(Xline(posy * size + dock[0], posx * size + dock[1], size))
         elif kind == ',':
             return(Yline((posy + 1)  * size + dock[0], posx * size + dock[1], size))
-        else:
-            print("Not recognized", "KIND: ", kind)
+
     def getCorner(self,kind,posx,posy,size,dock):
         if kind == '1':
             return ((Xline(posy * size + dock[0], posx * size + dock[1] - 1, size)), (Yline(posy * size + dock[0] - 1, posx * size + dock[1], size)))
@@ -170,7 +166,46 @@ def readmaze(string):
     json_data = open(string).read().split("\n")
     return json_data
 
+class Builder(object):
+    def __init__( self, mazelocation, free):
+        self._mloc = mazelocation
+        self._FREE = free
+        self._m = readmaze(mazelocation)
 
+    def buildscreen(self):
+        self._screensize = pygame.display.Info()
+        self._p = pygame.display.set_mode([self._screensize.current_w,self._screensize.current_h])
+        self._t = math.ceil(abs((self._screensize.current_h - self._FREE)) /(len(self._m) - 1) )
+        self._psize = int(self._t)
+        x = (self._screensize.current_w / 2 ) - (8.5 * self._t)
+        y = (self._screensize.current_h / 2) - (11 * self._t)
+        self._DOCK = (x,y)
+        self._startx = self._DOCK[0] + (8 * self._t)
+        self._starty = self._DOCK[1] + 15 * self._t
+        return self._p
+    def buildplayer(self, currentpac, startx = 0, starty = 0):
+        if startx == 0 and starty == 0:
+            return Jugador(self._psize,self._psize, self._DOCK, self._t, self._startx, self._starty, currentpac)
+        else:
+            return Jugador(self._psize,self._psize, self._DOCK, self._t, startx, self._starty, currentpac)
+    def tilesize(self):
+        return self._t
+    def buildmaze(self):
+        return Maze(self._mloc, self._FREE, self._screensize.current_h, self._DOCK, self._p)
+    def playersize(self):
+        return self._psize
+    def dock(self):
+        return self._DOCK
+    def buildmagic(self):
+        return pygame.Surface((self._t,3 * self._t))
+    def builcpacdotmagic(self):
+        return pygame.Surface((6,6))
+    def buildpacdots(self, maze):
+        pacdots = pygame.sprite.Group()
+        for x in maze:
+            if x!= None:
+                pacdots.add(x)
+        return pacdots
 
 class Maze(object):
     def __init__(self, string, free, height, DOCK, pantalla):
@@ -227,4 +262,4 @@ class Maze(object):
     def addToSprites(self, spr):
         self._sprites.add(spr)
     def __iter__(self):
-        return MazeIterator(self, self._p)
+        return MazeIterator(self)

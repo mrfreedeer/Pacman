@@ -12,7 +12,7 @@ black = (0,0,0)
 pink = (255,200,200)
 
 
-def movement(key, speed):
+def movement(key, speed, jp):
     if key == pygame.K_RIGHT:
         jp.rect.x += speed
         jp.posx += speed
@@ -66,81 +66,9 @@ def updatemain(jp, mantain):
     elif mantain == pygame.K_LEFT or mantain == pygame.K_RIGHT:
         jp.y = 0
 
-if __name__ == '__main__':
-    pygame.init()
-    FREE = 200
-    slowturn = 0
-    screensize = pygame.display.Info()
-    pantalla = pygame.display.set_mode([screensize.current_w,screensize.current_h])
-    mazelocation = "/home/juan/Escritorio/Project/maze.txt"
-    maze = readmaze(mazelocation)
-    TILESIZE = math.ceil(abs((screensize.current_h - FREE)) /(len(maze) - 1) )
-    clock = pygame.time.Clock()
-    x = (screensize.current_w / 2 ) - (8.5 * TILESIZE)
-    y = (screensize.current_h / 2) - (11 * TILESIZE)
-    DOCK = (x,y)
-    pygame.display.set_caption('PAC-MAN')
-    pantalla.fill(black)
-    m = Maze(mazelocation, FREE, screensize.current_h, DOCK, pantalla)
-    m.draw()
-    mazesprites = m.getSprites()
-    playersize = int(TILESIZE)
-    startx = DOCK[0] + (8 * TILESIZE)
-    starty = DOCK[1] + 15 * TILESIZE
 
-    image = pygame.image.load('Pacmanc.png').convert_alpha()
-    closedpac = pygame.transform.scale(image, (playersize,playersize))
-    image = pygame.image.load('Pacmanright.png').convert_alpha()
-    rightpac = pygame.transform.scale(image, (playersize,playersize))
-    image = pygame.transform.rotate(image, 90)
-    uppac = pygame.transform.scale(image, (playersize,playersize))
-    image = pygame.transform.rotate(image, 90)
-    leftpac = pygame.transform.scale(image, (playersize,playersize))
-    image = pygame.transform.rotate(image, 90)
-    downpac = pygame.transform.scale(image, (playersize,playersize))
-    currentpac = leftpac
-
-    jp = Jugador(playersize,playersize, DOCK, TILESIZE, startx, starty, currentpac)
-    playershadow = Jugador(playersize,playersize, DOCK, TILESIZE, startx, starty, currentpac)
-    g = pygame.sprite.GroupSingle()
-    g.add(jp)
-
-    ancholab = m.getWidth() + DOCK[0]
-    limitancho = ancholab * m.getTile()
-    quit = eating = collision = pendingturn = False
-    speed  = 1
-    magic = pygame.Surface((TILESIZE,3 * TILESIZE))
-    pacdotmagic = pygame.Surface((6,6))
-    pacdotmagic.fill(black)
-    magic.fill(black)
-    key = None
-    turn = 0
-    turnspeed = speed * 2
-    mouthchange = False
-    closed = False
-
-    start = move = True
-
-    mantain = pygame.K_LEFT
-    updatemain(jp, mantain)
-    counter = 0
-    pacdots = pygame.sprite.Group()
-    for x in m:
-        if x!= None:
-            pacdots.add(x)
-
-    pacdots.draw(pantalla)
-    habil = False
-
-
-    while True:
-        pygame.draw.rect(pantalla, black, (jp.posx, jp.posy, playersize, playersize) )
-
-        for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                pygame.quit()
-                exit()
-                quit = True
+class Facade(object):
+    def handlekeydown(self, event, key, playershadow, jp, collision, mantain, pendingturn):
         if event.type == pygame.KEYDOWN:
             key = event.key
             changedir(key, playershadow, jp)
@@ -164,6 +92,88 @@ if __name__ == '__main__':
                 elif key == pygame.K_DOWN:
                     currentpac = downpac
 
+if __name__ == '__main__':
+    pygame.init()
+    mazelocation = "/home/juan/Escritorio/Project/maze.txt"
+    FREE = 200
+    bob = Builder(mazelocation, FREE)
+    slowturn = 0
+    pantalla = bob.buildscreen()
+    clock = pygame.time.Clock()
+    pantalla.fill(black)
+    m = bob.buildmaze()
+    m.draw()
+    mazesprites = m.getSprites()
+    playersize = bob.playersize()
+    TILESIZE = bob.tilesize()
+    DOCK = bob.dock()
+
+    image = pygame.image.load('Pacmanc.png').convert_alpha()
+    closedpac = pygame.transform.scale(image, (playersize,playersize))
+    image = pygame.image.load('Pacmanright.png').convert_alpha()
+    rightpac = pygame.transform.scale(image, (playersize,playersize))
+    image = pygame.transform.rotate(image, 90)
+    uppac = pygame.transform.scale(image, (playersize,playersize))
+    image = pygame.transform.rotate(image, 90)
+    leftpac = pygame.transform.scale(image, (playersize,playersize))
+    image = pygame.transform.rotate(image, 90)
+    downpac = pygame.transform.scale(image, (playersize,playersize))
+    currentpac = leftpac
+
+    jp = bob.buildplayer(currentpac)
+    playershadow = bob.buildplayer(currentpac)
+    g = pygame.sprite.GroupSingle()
+    g.add(jp)
+
+
+    quit = collision = pendingturn = mouthchange = closed = habil = False
+    speed  = 1
+    magic = bob.buildmagic()
+    pacdotmagic = bob.builcpacdotmagic()
+    pacdotmagic.fill(black)
+    magic.fill(black)
+    key = None
+    turn = counter = 0
+    turnspeed = speed * 2
+
+    start = move = True
+    mantain = pygame.K_LEFT
+    updatemain(jp, mantain)
+    pacdots = bob.buildpacdots(m)
+    pacdots.draw(pantalla)
+
+    while True:
+        pygame.draw.rect(pantalla, black, (jp.posx, jp.posy, playersize, playersize) )
+
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                exit()
+                quit = True
+
+            if event.type == pygame.KEYDOWN:
+                key = event.key
+                changedir(key, playershadow, jp)
+                collision = False
+                ls = pygame.sprite.spritecollideany(playershadow, mazesprites, False)
+                if ls != None:
+                    collision = True
+                    if mantain != key:
+                        pendingturn = True
+
+                if not collision:
+                    mantain = key
+                    pendingturn = False
+                    updatemain(jp,mantain)
+                    if key == pygame.K_RIGHT:
+                        currentpac = rightpac
+                    elif key == pygame.K_LEFT:
+                        currentpac = leftpac
+                    elif key == pygame.K_UP:
+                        currentpac = uppac
+                    elif key == pygame.K_DOWN:
+                        currentpac = downpac
+
 
 
         if move and turn >= turnspeed or start:
@@ -174,7 +184,7 @@ if __name__ == '__main__':
                 pass
             else:
                 realspeed = speed
-            movement(mantain, realspeed)
+            movement(mantain, realspeed, jp)
             if counter == 15:
                 mouthchange = True
                 closed = not closed
@@ -227,7 +237,7 @@ if __name__ == '__main__':
                 o.kill()
             habil = True
         else:
-            if slowturn > turnspeed * 4:
+            if slowturn > turnspeed * 5:
                 slowturn = 0
                 habil = False
         if slowturn != 0:
@@ -235,9 +245,10 @@ if __name__ == '__main__':
         else:
             realspeed = speed
 
-
         pantalla.blit(magic, (DOCK[0] + TILESIZE * (m.getWidth()) , DOCK[1] + 8 * TILESIZE))
         pantalla.blit(magic, (DOCK[0] - TILESIZE , DOCK[1] + 8 * TILESIZE))
+
+
         pygame.display.flip()
         clock.tick(450)
 
