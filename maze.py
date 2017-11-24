@@ -178,16 +178,20 @@ class Builder(object):
         self._t = math.ceil(abs((self._screensize.current_h - self._FREE)) /(len(self._m) - 1) )
         self._psize = int(self._t)
         x = (self._screensize.current_w / 2 ) - (8.5 * self._t)
-        y = (self._screensize.current_h / 2) - (11 * self._t)
+        y = (self._screensize.current_h / 2) - (11 * self._t) - 50
         self._DOCK = (x,y)
         self._startx = self._DOCK[0] + (8 * self._t)
         self._starty = self._DOCK[1] + 15 * self._t
         return self._p
+    def getScreenwidth(self):
+        return self._screensize.current_w
+    def getScreenheight(self):
+        return self._screensize.current_h
     def buildplayer(self, currentpac, startx = 0, starty = 0):
         if startx == 0 and starty == 0:
             return Jugador(self._psize,self._psize, self._DOCK, self._t, self._startx, self._starty, currentpac)
         else:
-            return Jugador(self._psize,self._psize, self._DOCK, self._t, startx, self._starty, currentpac)
+            return Jugador(self._psize,self._psize, self._DOCK, self._t, startx, starty, currentpac)
     def tilesize(self):
         return self._t
     def buildmaze(self):
@@ -202,10 +206,24 @@ class Builder(object):
         return pygame.Surface((6,6))
     def buildpacdots(self, maze):
         pacdots = pygame.sprite.Group()
+        self._dotnum = 0
         for x in maze:
             if x!= None:
                 pacdots.add(x)
+                self._dotnum += 1
         return pacdots
+    def buildscore(self):
+        return Score(self._dotnum)
+class Score(object):
+    def __init__(self, pacnum):
+        self._dotnum = pacnum
+        self._consumed = 0
+    def consume(self):
+        self._dotnum -= 1
+        self._consumed += 1
+    def getScore(self):
+        return self._consumed * 10
+
 
 class Maze(object):
     def __init__(self, string, free, height, DOCK, pantalla):
