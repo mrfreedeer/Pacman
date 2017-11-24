@@ -3,14 +3,14 @@ import math
 from maze import *
 from pygame.locals import *
 
-red = (255,0,0)
-green = (0,255,0)
-blue = (0,0,255)
-darkBlue = (0,0,128)
-yellow =(255,255,51)
-white = (255,255,255)
-black = (0,0,0)
-pink = (255,200,200)
+red = (255,0,0)         #rgb(255,0,0)
+green = (0,255,0)       #rgb(0,255,0)
+blue = (0,0,255)        #rgb(0,0,255)
+darkBlue = (0,0,128)    #rgb(0,0,128)
+yellow =(255,255,51)    #rgb(255,255,51)
+white = (255,255,255)   #rgb(255,255,255)
+black = (0,0,0)         #rgb(0,0,0)
+pink = (255,200,200)    #rgb(255,200,200)
 
 
 def movement(key, speed, jp):   #Maneja el movimiento del jugador
@@ -67,11 +67,19 @@ def updatemain(jp, mantain):        #Ajusta solamente la dirección del movimien
     elif mantain == pygame.K_LEFT or mantain == pygame.K_RIGHT:
         jp.y = 0
 
+def die(jp, deathimages, pantalla):
+    imageind = 0
+    while imageind <= 6:
+        pygame.draw.rect(pantalla, black, (jp.posx, jp.posy, playersize, playersize) )
+        pantalla.blit(deathimages[imageind],(jp.rect.x, jp.rect.y))
+        pygame.display.flip()
+        pygame.time.delay(100)
+        imageind += 1
 if __name__ == '__main__':
     pygame.init()   #Inicializa a Pygame
     pygame.font.init()
 
-    mazelocation = "/home/juan/Escritorio/Project/maze.txt"
+    mazelocation = "C://Users//Juan Pablo//Desktop//Pacman//maze.txt"
     FREE = 200
     bob = Builder(mazelocation, FREE)
     slowturn = 0                      #Variable para ralentizar al jugador
@@ -103,6 +111,14 @@ if __name__ == '__main__':
     image = pygame.transform.rotate(image, 90)
     downpac = pygame.transform.scale(image, (playersize,playersize))
     currentpac = leftpac
+
+    string = 'Pdying'
+    png = '.png'
+    deathimages = []
+    for h in range(1,8):
+        image = pygame.image.load(string+str(h)+png).convert_alpha()
+        deathimages.append(pygame.transform.scale(image,(playersize,playersize)))
+
 
     jp = bob.buildplayer(currentpac)
     playershadow = bob.buildplayer(currentpac)
@@ -146,7 +162,13 @@ if __name__ == '__main__':
     timefinish = False
     pantalla.blit(pygame.Surface((TILESIZE * 4, TILESIZE)),(pausepos[0] + TILESIZE , pausepos[1] + 2 * TILESIZE))
     pantalla.blit(readytxt, (pausepos[0] + TILESIZE , pausepos[1] + 2 * TILESIZE))
+
     while True:
+        '''
+        if score._dotnum == 0:
+            move = False
+            die(jp, deathimages, pantalla)
+        '''
         if time < 3000 and timestart:
             pygame.time.delay(10)
             time += 10
