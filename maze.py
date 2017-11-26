@@ -17,8 +17,12 @@ pink = (255,200,200)
 class Jugador(pygame.sprite.Sprite):
     def __init__(self,ancho, alto, dock, tile, startx, starty, path):
         pygame.sprite.Sprite.__init__(self)
+        self._startx = startx
+        self._starty = starty
         self._d = dock
         self._t = tile
+        self._width = ancho
+        self._height = alto
         self.image = path
         self.rect = self.image.get_rect()
         self.rect.x = startx
@@ -27,13 +31,17 @@ class Jugador(pygame.sprite.Sprite):
         self.y = 0
         self.posx = startx
         self.posy = starty
+        self._lives = 3
+    def reset(self):
+        self.rect.x = self._startx
+        self.rect.y = self._starty
+        self.x = 0
+        self.y = 0
+        self.posx = self._startx
+        self.posy = self._starty
+        self.updatemain(pygame.K_LEFT)
 
-    def changeimage(self, ancho, alto, path):
-        image = pygame.image.load(path).convert_alpha()
-        self.image = pygame.transform.scale(image, (ancho,alto))
-        self.rect = self.image.get_rect()
-        self.rect.x = self.posx
-        self.rect.y = self.posy
+
     def update(self, mazesprites, width):
         ls_col = pygame.sprite.spritecollide(self, mazesprites, False)
         cols = False
@@ -57,6 +65,84 @@ class Jugador(pygame.sprite.Sprite):
             self.rect.x = self._d[0] + self._t * (width -1)
         if self.posx > self._d[0] + self._t * (width)  :
             self.posx = self.rect.x = self._d[0]
+    def crashed(self, object):
+        return pygame.sprite.collide_rect(self, object)
+    def die(self, deathimages, pantalla):
+         imageind = 0
+         while imageind <= 6:
+             pygame.draw.rect(pantalla, black, (self.posx, self.posy, self._width, self._height) )
+             pantalla.blit(deathimages[imageind],(self.rect.x, self.rect.y))
+             pygame.display.flip()
+             pygame.time.delay(100)
+             imageind += 1
+         magic = pygame.Surface((self._t, self._t))
+         pantalla.blit(magic, (self.rect.x, self.rect.y))
+         self._lives -= 1
+         self.reset()
+
+    def Right(self):
+        return 1
+    def Up(self):
+        return 2
+    def Left(self):
+        return 3
+    def Down(self):
+        return 4
+    def updatemain(self, mantain):        #Ajusta solamente la dirección del movimiento
+        if mantain == pygame.K_RIGHT:   #del jugador (arriba, abajp, etc)
+            self.x = 5
+
+        elif mantain == pygame.K_LEFT:
+            self.x = -5
+        elif mantain == pygame.K_UP:
+            self.y = -5
+        elif mantain == pygame.K_DOWN:
+            self.y = 5
+
+        if mantain == pygame.K_DOWN or mantain == pygame.K_UP:
+            self.x = 0
+        elif mantain == pygame.K_LEFT or mantain == pygame.K_RIGHT:
+            self.y = 0
+    def movement(self, key, speed):   #Maneja el movimiento del jugador
+        if key == pygame.K_RIGHT:   #para actualizarlo en caso de que la
+            self.rect.x += speed      #tecla oprimida cambie
+            self.posx += speed
+        if key == pygame.K_LEFT:
+            self.rect.x -= speed
+            self.posx -= speed
+        if key == pygame.K_UP:
+            self.rect.y -= speed
+            self.posy -= speed
+        if key == pygame.K_DOWN:
+            self.rect.y += speed
+            self.posy += speed
+
+    def changedir(self, key, jp):   #Reajusta la dirección de la sombra del jugador
+        if key == pygame.K_RIGHT:
+            move = True
+            self.x = 5
+            self.y = 0
+            self.rect.x = jp.rect.x + 1
+            self.rect.y = jp.rect.y
+        elif key == pygame.K_LEFT:
+            move = True
+            self.x = -5
+            self.y = 0
+            self.rect.x = jp.rect.x - 1
+            self.rect.y = jp.rect.y
+        elif key == pygame.K_UP:
+            move = True
+            self.y = -5
+            self.x = 0
+            self.rect.x = jp.rect.x
+            self.rect.y = jp.rect.y - 1
+        elif key == pygame.K_DOWN:
+            move = True
+            self.y = 5
+            self.x = 0
+            self.rect.x = jp.rect.x
+            self.rect.y = jp.rect.y + 1
+
 
 class Wall (pygame.sprite.Sprite):
     def __init__(self, x, y, tilesize):
@@ -85,6 +171,14 @@ class Invidot(pygame.sprite.Sprite):
         self.image.fill(white)
         self.rect = self.image.get_rect(x = x, y = y)
     def modpos(self,x,y):
+        self.rect.x = x
+        self.rect.y = y
+
+class Powerpellets(pygame.sprite.Sprite):
+    def __init__(self, x, y, path):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = path
+        self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
 
@@ -131,8 +225,6 @@ class MazeIterator(collections.abc.Iterator):
             raise StopIteration()
 
 
-
-
 class Mazefactory(object):
     def getPart(self, kind, posx, posy, size, dock):
         if kind == '5':
@@ -171,6 +263,7 @@ class Builder(object):
         self._mloc = mazelocation
         self._FREE = free
         self._m = readmaze(mazelocation)
+        self._dotnum = 0
 
     def buildscreen(self):
         self._screensize = pygame.display.Info()
@@ -206,24 +299,48 @@ class Builder(object):
         return pygame.Surface((6,6))
     def buildpacdots(self, maze):
         pacdots = pygame.sprite.Group()
-        self._dotnum = 0
+
         for x in maze:
             if x!= None:
                 pacdots.add(x)
                 self._dotnum += 1
         return pacdots
+    def buildpellets(self, image, m):
+        ppellets = pygame.sprite.Group()
+        ppelletpos = [(self._DOCK[0] + 0.2 * self._t, 2.75 * self._t)]
+        ppelletpos.append((self._DOCK[0] + (m.getWidth() -.9)*self._t, 2.75 * self._t))
+        ppelletpos.append((self._DOCK[0] + 0.2 * self._t, (15 + 2.75) * self._t))
+        ppelletpos.append((self._DOCK[0] + (m.getWidth() -.9)*self._t, (15 + 2.75) * self._t))
+        for x in ppelletpos:
+            self._dotnum += 1
+            ppellets.add(Powerpellets(x[0], x[1], image))
+        return ppellets
+
     def buildscore(self):
         return Score(self._dotnum)
 class Score(object):
     def __init__(self, pacnum):
         self._dotnum = pacnum
         self._consumed = 0
+        self._ppellets = 4
     def consume(self):
         self._dotnum -= 1
         self._consumed += 1
+    def bigconsume(self):
+        if self._ppellets > 0:
+            self._dotnum -= 1
+            self._ppellets -= 1
+            self._consumed += 1
     def getScore(self):
-        return self._consumed * 10
+        return self._consumed * 10 + (4 - self._ppellets) * 50
 
+class Life(pygame.sprite.Sprite):
+    def __init__(self, image, x, y):
+        pygame.sprite.Sprite.__init__(self)
+        self.image = image
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
 
 class Maze(object):
     def __init__(self, string, free, height, DOCK, pantalla):
@@ -272,8 +389,16 @@ class Maze(object):
         self._sprites.add(z3)
         self._sprites.add(z4)
         self._sprites.add(z5)
-        self._sprites.add(z6)
+        #_____________________________# Pared que bloquea Salida a Fantasmas
+        #self._sprites.add(z6)
+        #_____________________________#
 
+    def crashed(self, object):
+        ls = pygame.sprite.spritecollideany(object, self._sprites, False)
+        if ls != None:
+            return True
+        else:
+            return False
 
     def getSprites(self):
         return self._sprites
